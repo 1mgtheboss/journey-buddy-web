@@ -1,0 +1,248 @@
+<!-- This is a static file -->
+<!-- served from your routes in server.js -->
+
+<!-- You might want to try something fancier: -->
+<!-- html/nunjucks docs: https://mozilla.github.io/nunjucks/ -->
+<!-- pug: https://pugjs.org/ -->
+<!-- haml: http://haml.info/ -->
+<!-- hbs(handlebars): http://handlebarsjs.com/ -->
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>Journey Buddy</title>
+    <meta name="description" content="Travelling just got easier!">
+    <link id="favicon" rel="icon" href="https://glitch.com/edit/favicon-app.ico" type="image/x-icon">
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <link href="https://fonts.googleapis.com/css?family=Chivo&display=swap" rel="stylesheet">
+    <!-- import the webpage's stylesheet -->
+    <link rel="stylesheet" href="/style.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+
+
+    <!-- import the webpage's client-side javascript file -->
+
+
+</head>
+
+<body>
+    Journey Buddy&nbsp;&nbsp;&nbsp;&nbsp;<a href="#" id="reset">Reset</a><br><br>
+
+    Please enter destination <input type="text" id="destination"><br>
+    Please enter radius <input type="text" id="radius"><br>
+    Please enter origin iata code <input type="text" id="origin-iata"><br>
+    Please enter destination iata code <input type="text" id="destination-iata">
+    <br><br>
+    <a href="#" id="use-test-data">Use test data</a>
+    <br><br>
+    <a href="#" id="submit">Submit</a>
+    <br><br><br><br>
+
+
+
+    <div id="result"></div><br><br>
+    <div id="result-1"></div><br><br>
+    <div id="result-2"></div><br><br>
+    <div id="result-3"></div><br><br>
+
+    <a href="#" id="go-to-top">Top</a>
+
+
+
+
+
+    <script>
+        $(document).ready(function() {
+
+
+
+
+            $("#use-test-data").click(function() {
+
+                $("#destination").val("Paris");
+                $("#radius").val("1");
+                $("#origin-iata").val("LAX");
+                $("#destination-iata").val("PAR");
+
+            });
+
+            $("#submit").click(function() {
+
+
+
+
+                var settings = {
+                    "async": true,
+                    "crossDomain": true,
+                    "url": "https://api.opencagedata.com/geocode/v1/json?q=" + $("#destination").val() + "&key=REDACTED",
+                    "method": "GET",
+
+
+                }
+
+                $.ajax(settings).done(function(response1) {
+
+
+
+
+                    $.ajax({
+                        type: 'POST',
+                        // make sure you respect the same origin policy with this url:
+                        // http://en.wikipedia.org/wiki/Same_origin_policy
+                        url: '/1',
+                        data: {
+                            lat: response1.results[0].geometry.lat,
+                            long: response1.results[0].geometry.lng,
+                            radius: $("#radius").val()
+
+
+                        },
+                        success: function(response3) {
+
+                            var content = "Points of interest:<br><br>";
+                            for (var i = 0; i < response3.data.length; i++) {
+                                content += "<span class=\"poi\">" + response3.data[i].name + "</span><br>";
+                            }
+
+                            content = content.replace(/undefined/g, "&nbsp;");
+
+                            $("#result").html(content);
+                            $(".poi").click(function() {
+
+                                window.open("https://www.svrf.com/search/" + encodeURIComponent($(this).text()));
+                            });
+
+
+
+                            $.ajax({
+                                type: 'POST',
+                                // make sure you respect the same origin policy with this url:
+                                // http://en.wikipedia.org/wiki/Same_origin_policy
+                                url: '/2',
+                                data: {
+                                    origin: $("#origin-iata").val(),
+                                    destination: $("#destination-iata").val()
+
+
+                                },
+                                success: function(response4) {
+
+
+
+                                    var content1 = "Flight cheapest dates:<br><br>";
+                                    for (var i1 = 0; i1 < response4.data.length; i1++) {
+                                        content1 += "<span class=\"cheapest-date\">Departure date: " + response4.data[i1].departureDate + " Return date: " + response4.data[i1].returnDate + " Total price: " + response4.result.meta.currency + " " + response4.data[i1].price.total + "</span><br>";
+                                    }
+
+                                    content1 = content1.replace(/undefined/g, "&nbsp;");
+
+                                    $("#result-1").html(content1);
+                                    $('html, body').animate({
+                                        scrollTop: ($('#result-1').offset().top)
+                                    }, 1000);
+                                    $(".cheapest-date").click(function() {
+                                        var i2 = parseInt($(this).index(".cheapest-date"));
+
+                                        $("#result-1").html("<br>Flight cheapest dates:<br><br><span class=\"cheapest-date\">" + $(".cheapest-date").eq(i2).html() + "</span><br><br>");
+
+                                        $.ajax({
+                                            type: 'POST',
+                                            // make sure you respect the same origin policy with this url:
+                                            // http://en.wikipedia.org/wiki/Same_origin_policy
+                                            url: '/3',
+                                            data: {
+                                                origin: $("#origin-iata").val(),
+                                                destination: $("#destination-iata").val(),
+                                                departureDate: response4.data[i2].departureDate,
+                                                returnDate: response4.data[i2].returnDate,
+                                                max: 3
+
+
+                                            },
+                                            success: function(response5) {
+
+
+
+                                                var content2 = "Flight offers:<br><br>";
+
+                                                for (var i3 = 0; i3 < response5.data.length; i3++) {
+                                                    content2 += "<span class=\"flight-offer\">Offer " + (i3 + 1) + "- Total price: " + response5.result.meta.currency + " " + response5.data[i3].offerItems[0].price.total + "</span><br>"
+
+                                                }
+
+                                                content2 = content2.replace(/undefined/g, "&nbsp;");
+
+                                                $("#result-2").html(content2);
+                                                $('html, body').animate({
+                                                    scrollTop: ($('#result-2').offset().top)
+                                                }, 1000);
+
+                                                $(".flight-offer").click(function() {
+
+                                                    var i5 = parseInt($(this).index(".flight-offer"));
+
+
+
+                                                    $("#result-2").html("Flight offers:<br><br><span class=\"flight-offer\">" + $(".flight-offer").eq(i5).html() + "</span><br><br>");
+                                                    var content3 = "Offer detail:";
+
+
+
+                                                    content3 += "<br><br>Flight offer:<br><br>Id: " + response5.data[i5].id + "<br><br>Offer items:<br><br>Services:<br><br>Segments:";
+                                                    var response5dossegments = response5.data[i5].offerItems[0].services[0].segments;
+
+
+                                                    for (var i4 = 0; i4 < response5dossegments.length; i4++) {
+                                                        content3 += "<br><br>Flight segment: " + (i4 + 1) + "<br>Departure: " + response5dossegments[i4].flightSegment.departure.iataCode + " Terminal  " + response5dossegments[i4].flightSegment.departure.terminal + " at " + response5dossegments[i4].flightSegment.departure.at + "<br>Arrival:  " + response5dossegments[i4].flightSegment.arrival.iataCode + " Terminal " + response5dossegments[i4].flightSegment.arrival.terminal + " at " + response5dossegments[i4].flightSegment.arrival.at + "<br>Carrier code: " + response5dossegments[i4].flightSegment.carrierCode + "<br>Number:  " + response5dossegments[i4].flightSegment.number + "<br>Aircraft: Code: " + response5dossegments[i4].flightSegment.aircraft.code + "<br>Operating: Carrier code: " + response5dossegments[i4].flightSegment.operating.carrierCode + " Number: " + response5dossegments[i4].flightSegment.operating.number + "<br>Duration: " + response5dossegments[i4].flightSegment.duration + "<br>Pricing detail per adult: Travel class: " + response5dossegments[i4].pricingDetailPerAdult.travelClass + " Fare class: " + response5dossegments[i4].pricingDetailPerAdult.fareClass + " Availability: " + response5dossegments[i4].pricingDetailPerAdult.availability + " Fare basis: " + response5dossegments[i4].pricingDetailPerAdult.fareBasis;
+                                                    }
+
+                                                    content3 += "<br><br>Price: Total: " + response5.result.meta.currency + " " + response5.data[i5].offerItems[0].price.total + " Total taxes: " + response5.result.meta.currency + " " + response5.data[i5].offerItems[0].price.totalTaxes + "<br><br>Price per adult: Total: " + response5.result.meta.currency + " " + response5.data[i5].offerItems[0].pricePerAdult.total + " Total taxes: " + response5.result.meta.currency + " " + response5.data[i5].offerItems[0].pricePerAdult.totalTaxes;
+                                                    content3 = content3.replace(/undefined/g, "&nbsp;");
+                                                    $("#result-3").html(content3);
+
+                                                    $('html, body').animate({
+                                                        scrollTop: ($('#result-3').offset().top)
+                                                    }, 1000);
+                                                });
+
+                                            }
+                                        });
+                                    });
+                                }
+                            });
+
+
+
+                        }
+                    });
+
+
+
+
+                });
+
+
+
+
+            });
+            $("#reset").click(function() {
+                location.reload();
+            });
+
+            $("#go-to-top").click(function() {
+                $("html, body").animate({
+                    scrollTop: 0
+                }, "slow");
+                return false;
+            });
+
+
+        });
+    </script>
+</body>
+
+</html>
